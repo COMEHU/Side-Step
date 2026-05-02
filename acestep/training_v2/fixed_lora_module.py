@@ -189,10 +189,17 @@ class FixedLoRAModule(nn.Module):
         self._snr_gamma = training_config.snr_gamma
 
         if self._is_turbo:
-            logger.info(
-                "[OK] Turbo detected -- using discrete 8-step sampling, "
-                "CFG dropout disabled"
-            )
+            if self._cfg_ratio > 0.0:
+                logger.info(
+                    "[OK] Turbo detected -- using discrete 8-step sampling, "
+                    "CFG dropout ENABLED by user (ratio=%.2f)",
+                    self._cfg_ratio,
+                )
+            else:
+                logger.info(
+                    "[OK] Turbo detected -- using discrete 8-step sampling, "
+                    "CFG dropout disabled"
+                )
         else:
             logger.info(
                 "[OK] Base/SFT detected -- using continuous logit-normal "
@@ -323,7 +330,15 @@ class FixedLoRAModule(nn.Module):
             bsz = target_latents.shape[0]
 
             if self._is_turbo:
-                # ---- Turbo: discrete 8-step, no CFG dropout ----------------
+                # ---- Turbo: discrete 8-step sampling -----------------------
+                # CFG dropout is normally disabled for turbo, but if the user
+                # explicitly set --cfg-ratio > 0 we honour that choice.
+                if self._null_cond_emb is not None and self._cfg_ratio > 0.0:
+                    encoder_hidden_states = apply_cfg_dropout(
+                        encoder_hidden_states,
+                        self._null_cond_emb,
+                        cfg_ratio=self._cfg_ratio,
+                    )
                 t, r = sample_discrete_timesteps(
                     batch_size=bsz,
                     device=self.device,
