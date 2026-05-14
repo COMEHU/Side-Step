@@ -100,6 +100,23 @@ def build_optimizer(
             )
             optimizer_type = "adamw"
 
+    if optimizer_type == "rose":
+        try:
+            from rose_opt import Rose
+            logger.info("[Side-Step] Using Rose optimizer (Stateless, Low VRAM)")
+            return Rose(
+                params,
+                lr=lr,
+                weight_decay=weight_decay,
+                # Opcional: puedes activar wd_schedule=True si usas un scheduler de cosine
+            )
+        except ImportError:
+            logger.warning(
+                "[Side-Step] Rose not installed -- falling back to AdamW. "
+                "Install with: pip install rose-opt"
+            )
+            optimizer_type = "adamw"
+
     # Default: AdamW
     kwargs = {"lr": lr, "weight_decay": weight_decay}
     if device_type == "cuda":
