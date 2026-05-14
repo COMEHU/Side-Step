@@ -38,7 +38,7 @@ dependencies = [
     "lycoris-lora>=2.0.0",           # LoKR adapter support
     "bitsandbytes>=0.45.0",          # 8-bit optimizers (AdamW8bit)
     "prodigyopt>=1.1.2",             # Prodigy adaptive optimizer
-    "rose-opt"                       # Rose adapter
+    "rose-opt",                       # Rose adapter
     # ── Flash Attention (prebuilt wheels -- no compilation) ────────
     # Auto-installed on supported platforms; runtime falls back to
     # SDPA silently when flash-attn is absent (macOS, Python != 3.11).
