@@ -9,6 +9,7 @@ Supported optimizers:
     adamw8bit   -- bitsandbytes.optim.AdamW8bit (optional dep)
     adafactor   -- transformers.optimization.Adafactor
     prodigy     -- prodigyopt.Prodigy (optional dep, auto-tunes LR)
+    rose
 
 Supported schedulers:
     cosine              -- warmup + CosineAnnealingLR (single smooth decay)
@@ -107,7 +108,7 @@ def build_optimizer(
             return Rose(
                 params,
                 lr=lr,
-                weight_decay=weight_decay,
+                weight_decay=1e-4,
                 wd_schedule=True,
                 centralize=True,
                 # Opcional: puedes activar wd_schedule=True si usas un scheduler de cosine y centralize=False para permitir que los sesgos estilísticos extremos pasen sin ser filtrados
