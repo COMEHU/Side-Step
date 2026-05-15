@@ -108,7 +108,9 @@ def build_optimizer(
                 params,
                 lr=lr,
                 weight_decay=weight_decay,
-                # Opcional: puedes activar wd_schedule=True si usas un scheduler de cosine
+                wd_schedule=True
+                centralize=True
+                # Opcional: puedes activar wd_schedule=True si usas un scheduler de cosine y centralize=False para permitir que los sesgos estilísticos extremos pasen sin ser filtrados
             )
         except ImportError:
             logger.warning(
