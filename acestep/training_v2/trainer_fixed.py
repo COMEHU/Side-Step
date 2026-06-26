@@ -456,11 +456,12 @@ class FixedLoRATrainer:
                     
                     # Llamamos a un script externo pasándole el checkpoint recién guardado
                     cmd = [
-                        sys.executable, "generar_validacion.py", 
-                        "--lora_path", ckpt_dir,
-                        "--output_dir", str(test_dir),
-                        "--epoch", str(epoch + 1)
+                        sys.executable, "validar_epoch.py", 
+                        "--ckpt", ckpt_dir,
+                        "--out", str(test_dir)
                     ]
+                    
+                    subprocess.run(cmd, check=True)
                     
                     try:
                         # Ejecutar externamente. DEVNULL oculta el log de inferencia para no ensuciar el de entrenamiento.
