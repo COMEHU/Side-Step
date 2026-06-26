@@ -29,7 +29,7 @@ def main():
         
         # Inferencia simplificada usando los métodos del modelo cargado
         # (Asegúrate de que 'generate' esté expuesto en tu modelo cargado)
-        audio_tensor = model.generate(prompt=prompt, lyrics=lyrics, seed=42, steps=8)
+        audio_tensor = model.generate(prompt=prompt, lyrics=lyrics, duration=duration, seed=42, steps=8)
         
         # 3. Guardar
         out_path = Path(args.out) / f"val_{Path(args.ckpt).name}.flac"
