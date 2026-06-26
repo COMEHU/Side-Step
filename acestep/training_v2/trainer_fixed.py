@@ -15,6 +15,8 @@ Uses vendored copies of ACE-Step utilities from ``_vendor/``.
 
 from __future__ import annotations
 
+import subprocess
+import os
 import logging
 import math
 import random
@@ -419,6 +421,62 @@ class FixedLoRATrainer:
                     # memory fragmentation on consumer GPUs.
                     if torch.cuda.is_available() and global_step % cfg.log_every == 0:
                         torch.cuda.empty_cache()
+
+            # Periodic checkpoint
+            if (epoch + 1) % cfg.save_every_n_epochs == 0:
+                ckpt_dir = str(output_dir / "checkpoints" / f"epoch_{epoch + 1}")
+                self._save_checkpoint(optimizer, scheduler, epoch + 1, global_step, ckpt_dir)
+                yield TrainingUpdate(
+                    step=global_step, loss=avg_epoch_loss,
+                    msg=f"[OK] Checkpoint saved at epoch {epoch + 1}",
+                    kind="checkpoint", epoch=epoch + 1, max_epochs=cfg.max_epochs,
+                    checkpoint_path=ckpt_dir,
+                )
+
+                # Clear CUDA cache AFTER checkpoint save so serialization temporaries are freed.
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
+                # =================================================================
+                # MÓDULO DE VALIDACIÓN AISLADA (SUBPROCESO)
+                # =================================================================
+                # Leemos el argumento nativo del CLI
+                sample_freq = getattr(cfg, "sample_every_n_epochs", 0)
+                
+                if sample_freq > 0 and (epoch + 1) % sample_freq == 0:
+                    yield TrainingUpdate(
+                        step=global_step, loss=avg_epoch_loss,
+                        msg=f"[INFO] Generando muestras de validación para la época {epoch + 1}...",
+                        kind="info", epoch=epoch + 1, max_epochs=cfg.max_epochs,
+                    )
+                    
+                    import subprocess
+                    test_dir = output_dir / "TestSamples"
+                    test_dir.mkdir(parents=True, exist_ok=True)
+                    
+                    # Llamamos a un script externo pasándole el checkpoint recién guardado
+                    cmd = [
+                        sys.executable, "generar_validacion.py", 
+                        "--lora_path", ckpt_dir,
+                        "--output_dir", str(test_dir),
+                        "--epoch", str(epoch + 1)
+                    ]
+                    
+                    try:
+                        # Ejecutar externamente. DEVNULL oculta el log de inferencia para no ensuciar el de entrenamiento.
+                        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        yield TrainingUpdate(
+                            step=global_step, loss=avg_epoch_loss,
+                            msg=f"[OK] Audio de validación guardado en {test_dir}",
+                            kind="info", epoch=epoch + 1, max_epochs=cfg.max_epochs,
+                        )
+                    except subprocess.CalledProcessError as e:
+                        yield TrainingUpdate(
+                            step=global_step, loss=avg_epoch_loss,
+                            msg=f"[WARN] Error al generar audio de prueba. El entrenamiento continuará.",
+                            kind="warn", epoch=epoch + 1, max_epochs=cfg.max_epochs,
+                        )
+                # =================================================================
 
             # Flush remainder
             if accumulation_step > 0:
